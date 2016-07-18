@@ -1,0 +1,19 @@
+{
+  "authA": {
+    "targetUrl": "URL",
+    "password": "PASSWORD",
+    "username": "USERNAME"
+  },
+  "authB": {
+    "targetUrl": "URL",
+    "password": "PASSWORD",
+    "username": "USERNAME"
+  },
+  "dl_paystat": {
+    "data": {
+      "_FRAMID": "PC00CONTENTS",
+      "_TARGET": "_top",
+      "_TRANID": "PK01MeisaiShokaiPrint"
+    }
+  }
+}
