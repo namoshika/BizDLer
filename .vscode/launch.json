@@ -24,6 +24,19 @@
                 "WaitOnAbnormalExit",
                 "WaitOnNormalExit"
             ]
+        },
+        {
+            "name": "Python Console App DEBUG",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": true,
+            "program": "${file}",
+            "externalConsole": true,
+            "args": ["--debug"],
+            "debugOptions": [
+                "WaitOnAbnormalExit",
+                "WaitOnNormalExit"
+            ]
         }
     ]
 }

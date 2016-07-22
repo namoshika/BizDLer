@@ -1,13 +1,12 @@
-import json
 import http.cookiejar
+import json
 import logging
 import os
-import selenium.common
 import sys
-import urllib
+import urllib.request
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver import support
+from selenium.common import exceptions as drivererrors
 
 def downloadFiles():
     # 設定値
@@ -24,19 +23,27 @@ def downloadFiles():
         ("Accept-Language", "ja,en-US;q=0.8,en;q=0.6")
     ]
     # 設定ファイル読込み、DL先作成
-    logging.info("phase1: load config")
-    # 読み込み対象
     currentYear = None
     currentMonth = None
     try:
+        logging.info("phase1: load config")
+        if os.path.isdir(DOWNLOAD_DIR) == False:
+            os.mkdir(DOWNLOAD_DIR)
         with open(AUTH_FILE, "r", encoding="utf8") as authfile:
             authInfos = json.load(authfile)
             logging.info(authInfos)
-        with open(LATEST_DATE_FILE, "r", encoding="utf8") as acquFile:
-            acquInfos = json.load(acquFile)
+        with open(LATEST_DATE_FILE, "r", encoding="utf8") as saveFile:
+            acquInfos = json.load(saveFile)
             logging.info(acquInfos)
             currentYear = int(acquInfos["year_selector_opt"])
             currentMonth = int(acquInfos["month_selector_opt"])
+
+        logging.info("phase2: launch phantomJS")
+        driver = \
+            webdriver.Chrome(r".\lib\chromedriver.exe") if "--debug" in sys.argv else \
+            webdriver.PhantomJS(PHANTOMJS_DIR) if sys.platform == "win32" else \
+            webdriver.PhantomJS() if sys.platform == "linux" else \
+            None
     except FileNotFoundError as e:
         if e.filename == LATEST_DATE_FILE:
             logging.warning("Not found \"{0}\". It's maked.".format(LATEST_DATE_FILE))
@@ -45,21 +52,14 @@ def downloadFiles():
         else:
             logging.exception(e)
             raise
+    except drivererrors.WebDriverException as e:
+        logging.exception(e)
+        raise
     except IOError as e:
         logging.exception(e)
         raise
-    if os.path.isdir(DOWNLOAD_DIR) == False:
-        try: os.mkdir(DOWNLOAD_DIR)
-        except IOError as e:
-            logging.exception(e)
-            raise
 
     # DL処理本体
-    logging.info("phase2: launch phantomJS")
-    driver = \
-        webdriver.PhantomJS(PHANTOMJS_DIR) if os.name == "posix" else \
-        webdriver.Chrome(r".\lib\chromedriver.exe") if os.name == "nt" else \
-        None
     try:    
         logging.info("phase3: auth seq 1")
         driver.get(authInfos["authA"]["targetUrl"])
@@ -98,7 +98,7 @@ def downloadFiles():
             driver.switch_to_default_content()
             driver.switch_to_frame(driver.find_element_by_name("PC00CONTENTS"))
             ele_year = driver.find_element_by_id("OUT_YEAR")
-            selector_year = support.select.Select(ele_year)
+            selector_year = webdriver.support.select.Select(ele_year)
             currentYear = \
                 min([int(optObj.get_attribute("value"))
                         for optObj in selector_year.options
@@ -113,7 +113,7 @@ def downloadFiles():
             driver.switch_to_default_content()
             driver.switch_to_frame(driver.find_element_by_name("PC00CONTENTS"))
             ele = driver.find_element_by_id("OUT_MONTH")
-            selector_month = support.select.Select(ele)
+            selector_month = webdriver.support.select.Select(ele)
             nextMonth = \
                 min((int(optObj.get_attribute("value"))
                         for optObj in selector_month.options
@@ -190,14 +190,15 @@ def downloadFiles():
 
             acquInfos["year_selector_opt"] = currentYear
             acquInfos["month_selector_opt"] = currentMonth
+
+        with open(LATEST_DATE_FILE, "w", encoding="utf8") as saveFile:
+            json.dump(acquInfos, saveFile)
     except Exception as e:
         logging.exception(e)
         logging.error(driver.page_source)
         raise
     finally:
         driver.close()
-        with open(LATEST_DATE_FILE, "w", encoding="utf8") as acquFile:
-            json.dump(acquInfos, acquFile)
 pass
 
 logging.basicConfig(level=logging.ERROR)
