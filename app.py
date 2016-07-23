@@ -42,9 +42,7 @@ try:
     logging.info("phase2: launch phantomJS")
     driver = \
         webdriver.Chrome(r".\lib\chromedriver.exe") if "--debug" in sys.argv else \
-        webdriver.PhantomJS(PHANTOMJS_DIR) if sys.platform == "win32" else \
-        webdriver.PhantomJS() if sys.platform == "linux" else \
-        None
+        webdriver.PhantomJS(PHANTOMJS_DIR)
 except FileNotFoundError as e:
     if e.filename == LATEST_DATE_FILE:
         logging.warning("Not found \"{0}\". It's maked.".format(LATEST_DATE_FILE))
