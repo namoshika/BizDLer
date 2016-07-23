@@ -27,27 +27,31 @@ httpClient.addheaders = [
 currentYear = None
 currentMonth = None
 try:
-    logging.info("phase1: load config")
+    logging.info("phase1: launch phantomJS")
+    driver = \
+        webdriver.Chrome(r".\lib\chromedriver.exe") if "--debug" in sys.argv else \
+        webdriver.PhantomJS(PHANTOMJS_DIR)
+    
+    logging.info("phase2: load config")
     if os.path.isdir(DOWNLOAD_DIR) == False:
         os.mkdir(DOWNLOAD_DIR)
     with open(AUTH_FILE, "r", encoding="utf8") as authfile:
         authInfos = json.load(authfile)
         logging.info(authInfos)
     with open(LATEST_DATE_FILE, "r", encoding="utf8") as saveFile:
-        acquInfos = json.load(saveFile)
-        logging.info(acquInfos)
-        currentYear = int(acquInfos["year_selector_opt"])
-        currentMonth = int(acquInfos["month_selector_opt"])
-
-    logging.info("phase2: launch phantomJS")
-    driver = \
-        webdriver.Chrome(r".\lib\chromedriver.exe") if "--debug" in sys.argv else \
-        webdriver.PhantomJS(PHANTOMJS_DIR)
+        saveInfos = json.load(saveFile)
+        logging.info(saveInfos)
+        currentYear = int(saveInfos["year_selector_opt"])
+        currentMonth = int(saveInfos["month_selector_opt"])
 except FileNotFoundError as e:
     if e.filename == LATEST_DATE_FILE:
         logging.warning("Not found \"{0}\". It's maked.".format(LATEST_DATE_FILE))
         currentYear = -1
         currentMonth = -1
+        saveInfos = {
+            "year_selector_opt": currentYear,
+            "month_selector_opt": currentMonth
+        }
     else:
         logging.exception(e)
         raise
@@ -187,11 +191,11 @@ try:
         with open(filePathBase + ".html", "wt", encoding="utf8") as htmlFile:
             htmlFile.write(docTxt)
 
-        acquInfos["year_selector_opt"] = currentYear
-        acquInfos["month_selector_opt"] = currentMonth
+        saveInfos["year_selector_opt"] = currentYear
+        saveInfos["month_selector_opt"] = currentMonth
 
     with open(LATEST_DATE_FILE, "w", encoding="utf8") as saveFile:
-        json.dump(acquInfos, saveFile)
+        json.dump(saveInfos, saveFile)
 except Exception as e:
     logging.exception(e)
     logging.error(driver.page_source)
