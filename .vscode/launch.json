@@ -6,7 +6,14 @@
             "type": "python",
             "request": "launch",
             "stopOnEntry": true,
+            "pythonPath": "${config:python.pythonPath}",
             "program": "${file}",
+            "args": [
+                "--debug"
+            ],
+            "cwd": "${workspaceRoot}",
+            "env": {},
+            "envFile": "${workspaceRoot}/.env",
             "debugOptions": [
                 "WaitOnAbnormalExit",
                 "WaitOnNormalExit",
@@ -14,29 +21,46 @@
             ]
         },
         {
-            "name": "Python Console App",
+            "name": "Integrated Terminal/Console",
             "type": "python",
             "request": "launch",
             "stopOnEntry": true,
+            "pythonPath": "${config:python.pythonPath}",
             "program": "${file}",
-            "externalConsole": true,
+            "cwd": "",
+            "console": "integratedTerminal",
+            "env": {},
+            "envFile": "${workspaceRoot}/.env",
             "debugOptions": [
                 "WaitOnAbnormalExit",
                 "WaitOnNormalExit"
             ]
         },
         {
-            "name": "Python Console App DEBUG",
+            "name": "External Terminal/Console",
             "type": "python",
             "request": "launch",
             "stopOnEntry": true,
+            "pythonPath": "${config:python.pythonPath}",
             "program": "${file}",
-            "externalConsole": true,
-            "args": ["--debug"],
+            "cwd": "",
+            "console": "externalTerminal",
+            "env": {},
+            "envFile": "${workspaceRoot}/.env",
             "debugOptions": [
                 "WaitOnAbnormalExit",
                 "WaitOnNormalExit"
             ]
+        },
+        {
+            "name": "Attach (Remote Debug)",
+            "type": "python",
+            "request": "attach",
+            "localRoot": "${workspaceRoot}",
+            "remoteRoot": "${workspaceRoot}",
+            "port": 3000,
+            "secret": "my_secret",
+            "host": "localhost"
         }
     ]
 }
