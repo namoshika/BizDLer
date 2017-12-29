@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-import datetime
 import logging
 import os
 import shutil
@@ -7,11 +6,10 @@ import sys
 import time
 from urllib.parse import urlparse
 from selenium import webdriver
-from selenium.common import exceptions as drivererrors
 from config import Config
 
 # 初期化
-BASE_DIR = os.path.dirname(__file__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOWNLOAD_DIR = os.path.join(BASE_DIR, "downloads")
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -36,10 +34,8 @@ driver = webdriver.Chrome(".\\lib\\chromedriver.exe", options=options)
 try:
     logger.info("Auth A")
     driver.get(config.AuthInfos["authA"]["targetUrl"])
-    driver.find_element_by_name("username").send_keys(
-        config.AuthInfos["authA"]["username"])
-    driver.find_element_by_name("password").send_keys(
-        config.AuthInfos["authA"]["password"])
+    driver.find_element_by_name("username").send_keys(config.AuthInfos["authA"]["username"])
+    driver.find_element_by_name("password").send_keys(config.AuthInfos["authA"]["password"])
     driver.find_element_by_id("btnSubmit_6").click()
     currentUrl = urlparse(driver.current_url)
     if "p=user-confirm" in currentUrl.query:
@@ -47,21 +43,19 @@ try:
 
     logger.info("Auth B")
     driver.get(config.AuthInfos["authB"]["targetUrl"])
-    driver.find_element_by_name("USR_ID").send_keys(
-        config.AuthInfos["authB"]["username"])
-    driver.find_element_by_name("PASSWD").send_keys(
-        config.AuthInfos["authB"]["password"])
+    driver.find_element_by_name("USR_ID").send_keys(config.AuthInfos["authB"]["username"])
+    driver.find_element_by_name("PASSWD").send_keys(config.AuthInfos["authB"]["password"])
     driver.find_element_by_name("a_login").click()
 
     # メニューを開く。初回以外でクリックを
     # するとメニューを閉じてしまうため、初回のみ押す。
-    logger.info("Browser: navigate menu")
+    logger.info("Browse: navigate menu")
     driver.switch_to_frame(driver.find_element_by_name("PC00MENU"))
     driver.find_element_by_id("80").click()
 
-    logger.info("Browser: dl files")
+    logger.info("Browse: dl files")
     while True:
-        logger.info("parsing html")
+        logger.info("Click: 明細照会 menu")
         # 目的のリンクを押す
         driver.switch_to_default_content()
         driver.switch_to_frame(driver.find_element_by_name("PC00MENU"))
@@ -72,31 +66,29 @@ try:
                 break
 
         # 参照年選択
+        logger.info("Click: 参照年選択 option")
         driver.switch_to_default_content()
         driver.switch_to_frame(driver.find_element_by_name("PC00CONTENTS"))
         ele_year = driver.find_element_by_id("OUT_YEAR")
         selector_year = webdriver.support.select.Select(ele_year)
-        currentYear = \
-            min([int(optObj.get_attribute("value"))
-                 for optObj in selector_year.options
-                 if int(optObj.get_attribute("value")) >= currentYear])
-        nextYear = \
-            min([int(optObj.get_attribute("value"))
-                 for optObj in selector_year.options
-                 if int(optObj.get_attribute("value")) > currentYear],
-                default=None)
+        currentYear = min([optVal
+            for optVal in map(lambda x: int(x.get_attribute("value")), selector_year.options)
+            if optVal >= currentYear])
+        nextYear = min([optVal
+            for optVal in map(lambda x: int(x.get_attribute("value")), selector_year.options)
+            if optVal > currentYear], default=None)
         selector_year.select_by_value(str(currentYear))
         # 参照月選択
+        logger.info("Click: 参照月選択 option")
         driver.switch_to_default_content()
         driver.switch_to_frame(driver.find_element_by_name("PC00CONTENTS"))
         ele = driver.find_element_by_id("OUT_MONTH")
         selector_month = webdriver.support.select.Select(ele)
-        nextMonth = \
-            min((int(optObj.get_attribute("value"))
-                 for optObj in selector_month.options
-                 if int(optObj.get_attribute("value")) > currentMonth),
-                default=None)
+        nextMonth = min([optVal
+            for optVal in map(lambda x: int(x.get_attribute("value")), selector_month.options)
+            if optVal > currentMonth], default=None)
         # 次月が無ければ次年度の月初。次年度が無ければループ終了
+        logger.info("Click: 表示 btn")
         if nextMonth is not None:
             currentMonth = nextMonth
             selector_month.select_by_value(str(nextMonth))
@@ -111,11 +103,11 @@ try:
             break
 
         # 明細PDF取得 & 保存
-        logger.info("downloading PDF")
+        logger.info("Download PDF")
         driver.switch_to_frame(driver.find_element_by_name("PC00CONTENTS"))
         beforeList = set(os.listdir(DOWNLOAD_DIR))
         driver.find_element_by_id("BT_PRINT").click()
-        time.sleep(0.5)
+        time.sleep(1)
         afterList = set(os.listdir(DOWNLOAD_DIR))
         savedFile = os.path.join(DOWNLOAD_DIR, (afterList - beforeList).pop())
         filePathBase = os.path.join(DOWNLOAD_DIR, (
@@ -129,13 +121,17 @@ try:
         shutil.move(savedFile, pdfFilePath)
 
         # 明細HTML取得 & 保存
-        logger.info("downloading HTML")
+        logger.info("Download HTML")
         driver.switch_to_frame(None)
         driver.switch_to_frame(driver.find_element_by_name("PC00DETAILS"))
         docTxt = driver.page_source
         with open(filePathBase + ".html", "wt", encoding="utf8") as htmlFile:
             htmlFile.write(docTxt)
-        config.save()
+    
+    logger.info("Save checkpoint")
+    config.CurrentYear = currentYear
+    config.CurrentMonth = currentMonth
+    config.save()
 except Exception as e:
     logging.exception(e)
     logging.error(driver.page_source)
